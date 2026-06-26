@@ -1,0 +1,11 @@
+package com.facilcomanda.tableservice.controller; import com.facilcomanda.common.dto.*; import com.facilcomanda.common.web.AuthContext; import com.facilcomanda.tableservice.service.TableService; import jakarta.validation.Valid; import org.springframework.http.*; import org.springframework.security.core.Authentication; import org.springframework.web.bind.annotation.*; import java.util.List;
+@RestController @RequestMapping("/api/tables") public class TableController { private final TableService service; public TableController(TableService service){this.service=service;}
+ @PostMapping public ResponseEntity<TableResponse> createTable(@Valid @RequestBody TableRequest request, Authentication auth){return new ResponseEntity<>(service.createTable(request, AuthContext.organizationId(auth)), HttpStatus.CREATED);}
+ @GetMapping public ResponseEntity<List<TableResponse>> getAllTables(Authentication auth){return ResponseEntity.ok(service.getAllTables(AuthContext.organizationId(auth)));}
+ @GetMapping("/{id}") public ResponseEntity<TableResponse> getTableById(@PathVariable Long id, Authentication auth){return ResponseEntity.ok(service.getTableById(id, AuthContext.organizationId(auth)));}
+ @PutMapping("/{id}") public ResponseEntity<TableResponse> updateTable(@PathVariable Long id,@Valid @RequestBody TableRequest request, Authentication auth){return ResponseEntity.ok(service.updateTable(id, request, AuthContext.organizationId(auth)));}
+ @DeleteMapping("/{id}") public ResponseEntity<Void> deleteTable(@PathVariable Long id, Authentication auth){service.deleteTable(id, AuthContext.organizationId(auth)); return ResponseEntity.noContent().build();}
+ @GetMapping("/floor/{floorId}") public ResponseEntity<List<TableResponse>> getTablesByFloorId(@PathVariable Long floorId, Authentication auth){return ResponseEntity.ok(service.getTablesByFloorAndOrganization(floorId, AuthContext.organizationId(auth)));}
+ @PostMapping("/internal/{id}/occupy") public TableResponse occupy(@PathVariable Long id, @RequestHeader("X-Organization-ID") Long org){ return service.occupy(id,org); }
+ @GetMapping("/internal/{id}") public TableResponse internal(@PathVariable Long id, @RequestHeader("X-Organization-ID") Long org){ return service.getTableById(id,org); }
+}

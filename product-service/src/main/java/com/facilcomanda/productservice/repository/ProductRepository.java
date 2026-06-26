@@ -1,0 +1,1 @@
+package com.facilcomanda.productservice.repository; import com.facilcomanda.productservice.entity.Product; import org.springframework.data.jpa.repository.JpaRepository; import java.util.*; public interface ProductRepository extends JpaRepository<Product,Long>{ Optional<Product> findByIdAndOrganizationId(Long id,Long org); List<Product> findByOrganizationId(Long org); }

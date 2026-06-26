@@ -1,0 +1,14 @@
+package com.facilcomanda.tableservice.service; import com.facilcomanda.common.dto.*; import com.facilcomanda.common.enums.TableState; import com.facilcomanda.common.event.EventPublisher; import com.facilcomanda.tableservice.client.FloorClient; import com.facilcomanda.tableservice.entity.RestaurantTable; import com.facilcomanda.tableservice.repository.RestaurantTableRepository; import org.springframework.stereotype.Service; import java.util.List;
+@Service public class TableService { private final RestaurantTableRepository repo; private final FloorClient floors; private final EventPublisher publisher; public TableService(RestaurantTableRepository repo, FloorClient floors, EventPublisher publisher){this.repo=repo;this.floors=floors;this.publisher=publisher;}
+ public TableResponse createTable(TableRequest r,Long org){floors.getFloor(r.floorId(),org); RestaurantTable t=new RestaurantTable(); t.setOrganizationId(org); map(r,t); TableResponse res=toResponse(repo.save(t),org); audit("CREATE",res.id(),null,res); return res;}
+ public List<TableResponse> getAllTables(Long org){return repo.findByOrganizationId(org).stream().map(t -> toResponse(t,org)).toList();}
+ public List<TableResponse> getTablesByFloorAndOrganization(Long floorId,Long org){return repo.findByFloorIdAndOrganizationId(floorId,org).stream().map(t -> toResponse(t,org)).toList();}
+ public TableResponse getTableById(Long id,Long org){return toResponse(fetch(id,org),org);}
+ public TableResponse updateTable(Long id,TableRequest r,Long org){floors.getFloor(r.floorId(),org); RestaurantTable t=fetch(id,org); TableResponse old=toResponse(t,org); map(r,t); TableResponse res=toResponse(repo.save(t),org); audit("UPDATE",id,old,res); return res;}
+ public void deleteTable(Long id,Long org){RestaurantTable t=fetch(id,org); TableResponse old=toResponse(t,org); repo.delete(t); audit("DELETE",id,old,null);}
+ public TableResponse occupy(Long id,Long org){RestaurantTable t=fetch(id,org); t.setState(TableState.OCCUPIED); TableResponse res=toResponse(repo.save(t),org); audit("STATE_CHANGE",id,null,res); return res;}
+ private RestaurantTable fetch(Long id,Long org){return repo.findByIdAndOrganizationId(id,org).orElseThrow(() -> new RuntimeException("Table not found or unauthorized"));}
+ private void map(TableRequest r,RestaurantTable t){t.setName(r.name()); t.setDescription(r.description()); t.setState(r.state()); t.setChairs(r.chairs()); t.setFloorId(r.floorId());}
+ private TableResponse toResponse(RestaurantTable t,Long org){RestaurantFloorResponse f=floors.getFloor(t.getFloorId(),org); return new TableResponse(t.getId(),t.getName(),t.getDescription(),t.getState(),t.getChairs(),t.getOrganizationId(),t.getFloorId(),f.name());}
+ private void audit(String op,Object id,Object old,Object val){publisher.publishAudit("table-service","RestaurantTable",id,op,old,val,null,null,null,null);}
+}

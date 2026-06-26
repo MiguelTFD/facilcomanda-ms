@@ -1,0 +1,211 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: facilcomanda
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+  discovery-server:
+    build:
+      context: .
+      args:
+        SERVICE: discovery-server
+    ports:
+      - "8761:8761"
+  config-server:
+    build:
+      context: .
+      args:
+        SERVICE: config-server
+    environment:
+      EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka
+    depends_on:
+      - discovery-server
+    ports:
+      - "8888:8888"
+  api-gateway:
+    build:
+      context: .
+      args:
+        SERVICE: api-gateway
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka
+    depends_on:
+      - config-server
+      - discovery-server
+    ports:
+      - "8080:8080"
+
+  auth-service:
+    build:
+      context: .
+      args:
+        SERVICE: auth-service
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka
+      DB_URL: jdbc:postgresql://postgres:5432/auth_service
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      - config-server
+      - discovery-server
+      - rabbitmq
+      - postgres
+    ports:
+      - "8081:8081"
+
+  user-service:
+    build:
+      context: .
+      args:
+        SERVICE: user-service
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka
+      DB_URL: jdbc:postgresql://postgres:5432/user_service
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      - config-server
+      - discovery-server
+      - rabbitmq
+      - postgres
+    ports:
+      - "8082:8082"
+
+  category-service:
+    build:
+      context: .
+      args:
+        SERVICE: category-service
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka
+      DB_URL: jdbc:postgresql://postgres:5432/category_service
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      - config-server
+      - discovery-server
+      - rabbitmq
+      - postgres
+    ports:
+      - "8083:8083"
+
+  product-service:
+    build:
+      context: .
+      args:
+        SERVICE: product-service
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka
+      DB_URL: jdbc:postgresql://postgres:5432/product_service
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      - config-server
+      - discovery-server
+      - rabbitmq
+      - postgres
+    ports:
+      - "8084:8084"
+
+  restaurant-service:
+    build:
+      context: .
+      args:
+        SERVICE: restaurant-service
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka
+      DB_URL: jdbc:postgresql://postgres:5432/restaurant_service
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      - config-server
+      - discovery-server
+      - rabbitmq
+      - postgres
+    ports:
+      - "8085:8085"
+
+  table-service:
+    build:
+      context: .
+      args:
+        SERVICE: table-service
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka
+      DB_URL: jdbc:postgresql://postgres:5432/table_service
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      - config-server
+      - discovery-server
+      - rabbitmq
+      - postgres
+    ports:
+      - "8086:8086"
+
+  order-service:
+    build:
+      context: .
+      args:
+        SERVICE: order-service
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka
+      DB_URL: jdbc:postgresql://postgres:5432/order_service
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      - config-server
+      - discovery-server
+      - rabbitmq
+      - postgres
+    ports:
+      - "8087:8087"
+
+  audit-service:
+    build:
+      context: .
+      args:
+        SERVICE: audit-service
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_DEFAULT_ZONE: http://discovery-server:8761/eureka
+      DB_URL: jdbc:postgresql://postgres:5432/audit_service
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      - config-server
+      - discovery-server
+      - rabbitmq
+      - postgres
+    ports:
+      - "8088:8088"
+
+volumes:
+  postgres_data:

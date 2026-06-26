@@ -1,0 +1,5 @@
+package com.facilcomanda.categoryservice.entity;
+import jakarta.persistence.*;
+@Entity @Table(name="categories", indexes=@Index(name="idx_category_org", columnList="organization_id"))
+public class Category { @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id; @Column(name="organization_id") private Long organizationId; private String name; private String description; @ManyToOne @JoinColumn(name="parent_category_id") private Category parentCategory;
+ public Long getId(){return id;} public void setId(Long id){this.id=id;} public Long getOrganizationId(){return organizationId;} public void setOrganizationId(Long organizationId){this.organizationId=organizationId;} public String getName(){return name;} public void setName(String name){this.name=name;} public String getDescription(){return description;} public void setDescription(String description){this.description=description;} public Category getParentCategory(){return parentCategory;} public void setParentCategory(Category parentCategory){this.parentCategory=parentCategory;} }

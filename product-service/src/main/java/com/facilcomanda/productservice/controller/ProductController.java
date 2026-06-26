@@ -1,0 +1,10 @@
+package com.facilcomanda.productservice.controller; import com.facilcomanda.common.dto.*; import com.facilcomanda.common.web.AuthContext; import com.facilcomanda.productservice.service.ProductService; import jakarta.validation.Valid; import org.springframework.http.*; import org.springframework.security.core.Authentication; import org.springframework.web.bind.annotation.*; import java.util.List;
+@RestController @RequestMapping("/api/products") public class ProductController { private final ProductService service; public ProductController(ProductService service){this.service=service;}
+ @PostMapping public ResponseEntity<ProductResponse> createProduct(@Valid @RequestBody ProductRequest request, Authentication auth){return new ResponseEntity<>(service.createProduct(request, AuthContext.organizationId(auth)), HttpStatus.CREATED);}
+ @GetMapping public ResponseEntity<List<ProductResponse>> getAllProducts(Authentication auth){return ResponseEntity.ok(service.getAllProducts(AuthContext.organizationId(auth)));}
+ @GetMapping("/{id}") public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id, Authentication auth){return ResponseEntity.ok(service.getProductById(id, AuthContext.organizationId(auth)));}
+ @PutMapping("/{id}") public ResponseEntity<ProductResponse> updateProduct(@PathVariable Long id,@Valid @RequestBody ProductRequest request, Authentication auth){return ResponseEntity.ok(service.updateProduct(id, request, AuthContext.organizationId(auth)));}
+ @DeleteMapping("/{id}") public ResponseEntity<Void> deleteProduct(@PathVariable Long id, Authentication auth){service.deleteProduct(id, AuthContext.organizationId(auth)); return ResponseEntity.noContent().build();}
+ @GetMapping("/internal/{id}") public ProductSnapshot internalProduct(@PathVariable Long id, @RequestHeader("X-Organization-ID") Long org){return service.getProductSnapshot(id,org);}
+ @PostMapping("/internal/{id}/reserve") public ProductSnapshot reserve(@PathVariable Long id, @RequestParam Integer quantity, @RequestHeader("X-Organization-ID") Long org){return service.reserveStock(id,quantity,org);}
+}

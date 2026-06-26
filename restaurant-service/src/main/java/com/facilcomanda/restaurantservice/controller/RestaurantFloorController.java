@@ -1,0 +1,9 @@
+package com.facilcomanda.restaurantservice.controller; import com.facilcomanda.common.dto.*; import com.facilcomanda.common.web.AuthContext; import com.facilcomanda.restaurantservice.service.RestaurantService; import jakarta.validation.Valid; import org.springframework.http.*; import org.springframework.security.core.Authentication; import org.springframework.web.bind.annotation.*; import java.util.List;
+@RestController @RequestMapping("/api/restaurant-floors") public class RestaurantFloorController { private final RestaurantService service; public RestaurantFloorController(RestaurantService service){this.service=service;}
+ @PostMapping public ResponseEntity<RestaurantFloorResponse> createFloor(@Valid @RequestBody RestaurantFloorRequest request, Authentication auth){return new ResponseEntity<>(service.createFloor(request, AuthContext.organizationId(auth)), HttpStatus.CREATED);}
+ @GetMapping public ResponseEntity<List<RestaurantFloorResponse>> getAllFloors(Authentication auth){return ResponseEntity.ok(service.getAllFloors(AuthContext.organizationId(auth)));}
+ @GetMapping("/{id}") public ResponseEntity<RestaurantFloorResponse> getFloorById(@PathVariable Long id, Authentication auth){return ResponseEntity.ok(service.getFloorById(id, AuthContext.organizationId(auth)));}
+ @PutMapping("/{id}") public ResponseEntity<RestaurantFloorResponse> updateFloor(@PathVariable Long id,@Valid @RequestBody RestaurantFloorRequest request, Authentication auth){return ResponseEntity.ok(service.updateFloor(id, request, AuthContext.organizationId(auth)));}
+ @DeleteMapping("/{id}") public ResponseEntity<Void> deleteFloor(@PathVariable Long id, Authentication auth){service.deleteFloor(id, AuthContext.organizationId(auth)); return ResponseEntity.noContent().build();}
+ @GetMapping("/internal/{id}") public RestaurantFloorResponse internalFloor(@PathVariable Long id, @RequestHeader("X-Organization-ID") Long org){return service.getFloorById(id, org);}
+}

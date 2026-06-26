@@ -1,0 +1,1 @@
+package com.facilcomanda.authservice.repository; import com.facilcomanda.authservice.entity.AuthOrganization; import org.springframework.data.jpa.repository.JpaRepository; public interface AuthOrganizationRepository extends JpaRepository<AuthOrganization,Long>{}

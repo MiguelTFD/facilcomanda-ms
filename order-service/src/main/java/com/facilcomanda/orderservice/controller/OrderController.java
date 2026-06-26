@@ -1,0 +1,5 @@
+package com.facilcomanda.orderservice.controller; import com.facilcomanda.common.dto.*; import com.facilcomanda.common.web.AuthContext; import com.facilcomanda.orderservice.service.OrderService; import jakarta.validation.Valid; import org.springframework.http.*; import org.springframework.security.core.Authentication; import org.springframework.web.bind.annotation.*; import java.util.List;
+@RestController @RequestMapping("/api/orders") public class OrderController { private final OrderService service; public OrderController(OrderService service){this.service=service;}
+ @PostMapping public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody OrderRequest request, Authentication auth){return new ResponseEntity<>(service.createOrder(request, AuthContext.organizationId(auth), auth.getName()), HttpStatus.CREATED);}
+ @GetMapping public ResponseEntity<List<OrderResponse>> getActiveOrders(Authentication auth){return ResponseEntity.ok(service.getActiveOrders(AuthContext.organizationId(auth)));}
+}
