@@ -378,7 +378,7 @@ import java.util.Map;
 import java.util.function.Function;
 @Service
 public class JwtService {
-    @Value("${application.security.jwt.secret-key}") private String secretKey;
+    @Value("${application.security.jwt.secret-key:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}") private String secretKey;
     @Value("${application.security.jwt.expiration:86400000}") private long jwtExpiration;
     public String extractUsername(String token) { return extractClaim(token, Claims::getSubject); }
     public Long extractOrganizationId(String token) { return extractClaim(token, claims -> claims.get("organizationId", Long.class)); }
@@ -590,6 +590,11 @@ w("discovery-server/src/main/resources/application.yml", """
 spring:
   application:
     name: discovery-server
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
 server:
   port: ${PORT:8761}
 eureka:
@@ -765,6 +770,7 @@ management:
 
 def app(module, cls):
     compact = module.replace("-", "")
+    db_name = module.replace("-", "_")
     w(java_base(module)/f"{cls}.java", f"""
     package com.facilcomanda.{compact};
     import org.springframework.boot.SpringApplication;
@@ -780,8 +786,33 @@ def app(module, cls):
         name: {module}
       config:
         import: optional:configserver:${{CONFIG_SERVER_URL:http://localhost:8888}}
+      datasource:
+        url: ${{DB_URL:jdbc:postgresql://localhost:5432/{db_name}}}
+        username: ${{DB_USER:postgres}}
+        password: ${{DB_PASSWORD:postgres}}
+        driver-class-name: org.postgresql.Driver
+      jpa:
+        hibernate:
+          ddl-auto: ${{DB_DDL_AUTO:update}}
+        properties:
+          hibernate:
+            dialect: org.hibernate.dialect.PostgreSQLDialect
+      rabbitmq:
+        host: ${{RABBITMQ_HOST:localhost}}
+        port: ${{RABBITMQ_PORT:5672}}
+        username: ${{RABBITMQ_USER:guest}}
+        password: ${{RABBITMQ_PASSWORD:guest}}
     server:
       port: ${{PORT:{ports[module]}}}
+    eureka:
+      client:
+        service-url:
+          defaultZone: ${{EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka}}
+    application:
+      security:
+        jwt:
+          secret-key: ${{JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}}
+          expiration: ${{JWT_EXPIRATION:86400000}}
     """)
 
 ports = {"auth-service":8081,"user-service":8082,"category-service":8083,"product-service":8084,"restaurant-service":8085,"table-service":8086,"order-service":8087,"audit-service":8088}
@@ -1185,10 +1216,14 @@ for module, port in ports.items():
       DB_PASSWORD: postgres
       RABBITMQ_HOST: rabbitmq
     depends_on:
-      - config-server
-      - discovery-server
-      - rabbitmq
-      - postgres
+      config-server:
+        condition: service_started
+      discovery-server:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      postgres-init:
+        condition: service_completed_successfully
     ports:
       - "{port}:{port}"
 """)
@@ -1205,11 +1240,31 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d facilcomanda"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  postgres-init:
+    image: postgres:16-alpine
+    environment:
+      PGPASSWORD: postgres
+    volumes:
+      - ./docker/postgres/init-databases.sh:/init-databases.sh:ro
+    entrypoint: ["/bin/sh", "/init-databases.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
   rabbitmq:
     image: rabbitmq:3-management
     ports:
       - "5672:5672"
       - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
   discovery-server:
     build:
       context: .
@@ -1255,6 +1310,17 @@ CREATE DATABASE product_service;
 CREATE DATABASE restaurant_service;
 CREATE DATABASE table_service;
 CREATE DATABASE order_service;
+""")
+
+w("docker/postgres/init-databases.sh", """
+#!/bin/sh
+set -e
+
+for db in auth_service audit_service user_service category_service product_service restaurant_service table_service order_service; do
+  if ! psql -h postgres -U postgres -d facilcomanda -tAc "SELECT 1 FROM pg_database WHERE datname = '$db'" | grep -q 1; then
+    psql -h postgres -U postgres -d facilcomanda -c "CREATE DATABASE \\"$db\\""
+  fi
+done
 """)
 
 w("README.md", """

@@ -1,6 +1,11 @@
 spring:
   application:
     name: discovery-server
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
 server:
   port: ${PORT:8761}
 eureka:
